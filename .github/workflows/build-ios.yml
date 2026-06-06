@@ -1,0 +1,34 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npx cap sync ios
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Build IPA
+        run: |
+          cd ios/App
+          xcodebuild clean build -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM="" PROVISIONING_PROFILE_SPECIFIER=""
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -r XYZW_Game.ipa Payload/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XYZW-Game-iOS
+          path: XYZW_Game.ipa
+          retention-days: 7
